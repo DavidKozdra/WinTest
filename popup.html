@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WinTest</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+  <link rel="stylesheet" href="./style.css">
+
+  <style>
+    /* General Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      color: #333;
+      width: 100%;
+      height: auto;
+      text-align: center;
+    }
+
+    h3 {
+      color: #2c3e50;
+      margin-top: 10px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    /* Tab navigation styles */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .tabs button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      width: 33%;
+      border-radius: 5px 5px 0 0;
+    }
+
+    .tabs button:hover {
+      background-color: #2980b9;
+    }
+
+    .tabs button.active {
+      background-color: #2980b9;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 0 0 5px 5px;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .config-form {
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    /* Form inputs and button styles */
+    input[type="number"] {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      background-color: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    #add-config, #start-test {
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    /* Config List Styles */
+    #config-list {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .config-item {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 5px 0;
+      background-color: #fff;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .config-item button {
+      font-size: 14px;
+      padding: 5px 10px;
+      background-color: #e74c3c;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      margin-right: 5px;
+    }
+
+    .config-item button:hover {
+      background-color: #c0392b;
+    }
+
+    .config-item .edit-button {
+      background-color: #f39c12;
+    }
+
+    .config-item .edit-button:hover {
+      background-color: #e67e22;
+    }
+
+  </style>
+</head>
+<body>
+
+  <h3>WinTest </h3>
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab-button active" data-tab="settings">Settings</button>
+    <button class="tab-button" data-tab="configs">Configurations</button>
+    <button class="tab-button" data-tab="test">Run Test</button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content settings active">
+    <h4>Add/Edit Config</h4>
+    <form id="config-form">
+      <input type="number" id="width" placeholder="Enter width" required />
+      <input type="number" id="height" placeholder="Enter height" required />
+      <input type="number" id="zoom" placeholder="Enter zoom (e.g., 1 for 100%)" step="0.1" min="0.1" required />
+      <div class="button-container">
+        <button type="submit" id="save-config"><i class="fas fa-save"></i> Save Config</button>
+        <button type="button" id="cancel-config"><i class="fas fa-times"></i> Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="tab-content configs">
+    <h4>Saved Configurations</h4>
+    <div id="config-list"></div>
+  </div>
+
+  <div class="tab-content test">
+    <button id="start-test"><i class="fas fa-play"></i> Start Test</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

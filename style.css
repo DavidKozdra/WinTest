@@ -1,0 +1,136 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    width: 300px;
+    height: auto;
+    text-align: center;
+  }
+  
+  /* Header Style */
+  h3 {
+    color: #2c3e50;
+    margin-top: 10px;
+    font-size: 22px;
+    font-weight: bold;
+  }
+  
+  h4 {
+    color: #34495e;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  
+  /* Form and Button Styles */
+  .config-form {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+  }
+  
+  input[type="text"],
+  input[type="number"] {
+    width: 90%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+  
+  button {
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 5px;
+    background-color: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+  }
+  
+  button:hover {
+    background-color: #2980b9;
+  }
+  
+  /* Button Container (Add/Edit/Cancel) */
+  .button-container {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  button:disabled {
+    background-color: #b0b0b0;
+    cursor: not-allowed;
+  }
+  
+  /* Config List Styles */
+  #config-list {
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .config-item {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #fff;
+    border-radius: 8px;
+    text-align: left;
+  }
+  
+  .config-item button {
+    font-size: 14px;
+    padding: 5px 10px;
+    background-color: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    margin-right: 5px;
+  }
+  
+  .config-item button:hover {
+    background-color: #c0392b;
+  }
+  
+  .config-item .edit-button {
+    background-color: #f39c12;
+  }
+  
+  .config-item .edit-button:hover {
+    background-color: #e67e22;
+  }
+  
+  #add-config {
+    background-color: #2ecc71;
+    color: #fff;
+    margin-top: 20px;
+    width: 100%;
+  }
+  
+  #add-config:hover {
+    background-color: #27ae60;
+  }
+  
+  /* Icons */
+  button i {
+    margin-right: 5px;
+  }
+  
+  /* Simple Responsive Styles */
+  @media (max-width: 350px) {
+    body {
+      width: 100%;
+    }
+    .config-form input,
+    button {
+      width: 100%;
+    }
+  }
+  
