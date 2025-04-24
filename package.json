@@ -1,0 +1,26 @@
+{
+  "name": "wintest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "background.js",
+  "scripts": {
+    "browser": "node browser.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build":"node build.js && npm test && npm run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DavidKozdra/WinTest.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/DavidKozdra/WinTest/issues"
+  },
+  "homepage": "https://github.com/DavidKozdra/WinTest#readme",
+  "dependencies": {
+    "archiver": "^7.0.1"
+  }
+}

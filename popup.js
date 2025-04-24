@@ -63,6 +63,9 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           // Open new windows for each saved config with the current URL
           configs.forEach((config) => {
+            // make sure the width and height exist if not set to 1000 1000 and alert 
+
+
             const newWindow = window.open(currentUrl, '', `width=${config.width},height=${config.height}`);
   
             if (newWindow) {
@@ -76,12 +79,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
     }
-  
+    let currentSort = { field: "width", direction: 1, name:"width sort" }; // Default sort
+
+    function sortConfigs(configs, field = "width", direction = 1) {
+      return [...configs].sort((a, b) => {
+        if (a[field] < b[field]) return -1 * direction;
+        if (a[field] > b[field]) return 1 * direction;
+        return 0;
+      });
+    }
+    
     // Load and display configurations from localStorage
     function loadConfigs() {
       const configs = JSON.parse(localStorage.getItem("configs")) || [];
-
-      
+    
       const configList = document.getElementById("config-list");
       if (configList) {
         configList.innerHTML = ""; // Clear the list
