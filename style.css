@@ -1,136 +1,168 @@
 /* General Styles */
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-    color: #333;
-    width: 300px;
-    height: auto;
-    text-align: center;
-  }
-  
-  /* Header Style */
-  h3 {
-    color: #2c3e50;
-    margin-top: 10px;
-    font-size: 22px;
-    font-weight: bold;
-  }
-  
-  h4 {
-    color: #34495e;
-    font-size: 18px;
-    margin-bottom: 10px;
-  }
-  
-  /* Form and Button Styles */
-  .config-form {
-    background-color: #fff;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-  }
-  
-  input[type="text"],
-  input[type="number"] {
-    width: 90%;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-  }
-  
-  button {
-    padding: 10px;
-    font-size: 16px;
-    cursor: pointer;
-    margin: 5px;
-    background-color: #3498db;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-  }
-  
-  button:hover {
-    background-color: #2980b9;
-  }
-  
-  /* Button Container (Add/Edit/Cancel) */
-  .button-container {
-    display: flex;
-    justify-content: space-between;
-  }
-  
-  button:disabled {
-    background-color: #b0b0b0;
-    cursor: not-allowed;
-  }
-  
-  /* Config List Styles */
-  #config-list {
-    margin-top: 20px;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-  
-  .config-item {
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin: 5px 0;
-    background-color: #fff;
-    border-radius: 8px;
-    text-align: left;
-  }
-  
-  .config-item button {
-    font-size: 14px;
-    padding: 5px 10px;
-    background-color: #e74c3c;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    margin-right: 5px;
-  }
-  
-  .config-item button:hover {
-    background-color: #c0392b;
-  }
-  
-  .config-item .edit-button {
-    background-color: #f39c12;
-  }
-  
-  .config-item .edit-button:hover {
-    background-color: #e67e22;
-  }
-  
-  #add-config {
-    background-color: #2ecc71;
-    color: #fff;
-    margin-top: 20px;
+  font-family: 'Roboto', sans-serif;
+  background-color: #fafafa;
+  margin: 0;
+  padding: 0;
+  color: #212121;
+  width: 300px;
+  height: auto;
+  text-align: center;
+}
+
+/* Header Styles */
+h3 {
+  color: #1e88e5;
+  margin-top: 16px;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+h4 {
+  color: #424242;
+  font-size: 20px;
+  margin-bottom: 16px;
+  font-weight: 400;
+}
+
+/* Form and Container Styles */
+.config-form {
+  background-color: #fff;
+  padding: 20px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  margin-bottom: 24px;
+  transition: box-shadow 0.3s ease;
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 12px;
+  margin: 12px 0;
+  border: none;
+  border-bottom: 2px solid #ccc;
+  background-color: transparent;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-bottom: 2px solid #1e88e5;
+}
+
+/* Buttons */
+button {
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  margin: 6px 4px;
+  background-color: #1e88e5;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(30, 136, 229, 0.3);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+button:hover {
+  background-color: #1565c0;
+  box-shadow: 0 4px 10px rgba(30, 136, 229, 0.4);
+}
+
+button:disabled {
+  background-color: #bdbdbd;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Button Container */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Config List */
+#config-list {
+  margin-top: 24px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Config Items */
+.config-item {
+  border-left: 4px solid #1e88e5;
+  padding: 12px;
+  margin: 8px 0;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  transition: transform 0.2s;
+}
+
+.config-item:hover {
+  transform: translateY(-2px);
+}
+
+/* Config Buttons */
+.config-item button {
+  font-size: 14px;
+  padding: 6px 12px;
+  margin-right: 4px;
+  border-radius: 4px;
+}
+
+.config-item .edit-button {
+  background-color: #fbc02d;
+  color: #212121;
+}
+
+.config-item .edit-button:hover {
+  background-color: #f9a825;
+}
+
+.config-item .delete-button {
+  background-color: #e53935;
+}
+
+.config-item .delete-button:hover {
+  background-color: #c62828;
+}
+
+/* Add Config Button */
+#add-config {
+  background-color: #43a047;
+  color: #fff;
+  margin-top: 24px;
+  width: 100%;
+}
+
+#add-config:hover {
+  background-color: #2e7d32;
+}
+
+/* Icons */
+button i {
+  margin-right: 6px;
+}
+
+/* Responsive */
+@media (max-width: 350px) {
+  body {
     width: 100%;
   }
-  
-  #add-config:hover {
-    background-color: #27ae60;
+
+  .config-form input,
+  button {
+    width: 100%;
   }
-  
-  /* Icons */
-  button i {
-    margin-right: 5px;
+
+  .button-container {
+    flex-direction: column;
+    gap: 8px;
   }
-  
-  /* Simple Responsive Styles */
-  @media (max-width: 350px) {
-    body {
-      width: 100%;
-    }
-    .config-form input,
-    button {
-      width: 100%;
-    }
-  }
-  
+}
