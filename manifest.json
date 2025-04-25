@@ -3,7 +3,12 @@
     "name": "WinTest",
     "version": "1.0",
     "description": "Opens the current page URL in a new window",
-    "permissions": ["tabs"],
+    
+      "permissions": ["tabs"],
+      "host_permissions": ["<all_urls>"],
+    
+    
+    
     "background": {
       "service_worker": "background.js"
     },
