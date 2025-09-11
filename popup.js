@@ -3,16 +3,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const DEFAULT_HEIGHT = 1000;
   const DEFAULT_ZOOM = 1;
 
+  let openedWindows = []; // store references to all opened windows
+  let tabManager; // for tab control
+
   loadConfigs();
 
-  const addConfigButton = document.getElementById("add-config");
-  if (addConfigButton) {
-    addConfigButton.addEventListener("click", () => {
-      resetForm();
-      document.getElementById("config-form").dataset.mode = "add";
-    });
-  }
-
+  // --- FORM HANDLING ---
   const configForm = document.getElementById("config-form");
   if (configForm) {
     configForm.addEventListener("submit", (event) => {
@@ -21,6 +17,11 @@ document.addEventListener("DOMContentLoaded", () => {
       let width = parseInt(document.getElementById("width").value) || DEFAULT_WIDTH;
       let height = parseInt(document.getElementById("height").value) || DEFAULT_HEIGHT;
       let zoom = parseFloat(document.getElementById("zoom").value) || DEFAULT_ZOOM;
+
+      if (width <= 0 || height <= 0 || zoom <= 0) {
+        alert("Invalid config values. Width, height, and zoom must be greater than 0.");
+        return;
+      }
 
       const config = {
         id: Date.now(),
@@ -55,32 +56,83 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const currentUrl = tabs[0].url;
+
+        // prevent restricted pages (like chrome://, about:, edge://, file://)
+        if (/^(chrome|about|edge|file):\/\//.test(currentUrl)) {
+          alert("This tab cannot be opened in a new window (restricted URL).");
+          return;
+        }
+
         const configs = JSON.parse(localStorage.getItem("configs")) || [];
 
         if (configs.length === 0) {
-          alert("No configurations found.");
+          alert("No configurations found. Please add one first.");
           return;
         }
+
+        // close previously opened windows before opening new ones
+        closeAllWindows();
 
         configs.forEach((config) => {
           const width = config.width || DEFAULT_WIDTH;
           const height = config.height || DEFAULT_HEIGHT;
           const zoom = config.zoom || DEFAULT_ZOOM;
 
-          const newWindow = window.open(currentUrl, '', `width=${width},height=${height}`);
-
+          const newWindow = window.open(currentUrl, "_blank", `width=${width},height=${height}`);
           if (newWindow) {
+            openedWindows.push(newWindow);
+
             newWindow.onload = () => {
-              newWindow.document.body.style.zoom = zoom;
+              try {
+                newWindow.document.body.style.zoom = zoom;
+
+                // Inject BroadcastChannel listener into the child window
+                const script = newWindow.document.createElement("script");
+                script.textContent = `
+                  const bc = new BroadcastChannel("window-manager");
+                  bc.onmessage = (event) => {
+                    if (event.data === "close-all") {
+                      window.close();
+                    }
+                  };
+                `;
+                newWindow.document.head.appendChild(script);
+              } catch (e) {
+                console.warn("Could not inject event listener into child window:", e);
+              }
             };
+          } else {
+            alert("Failed to open a new window. Check your browser settings (pop-ups may be blocked).");
           }
         });
       });
     });
   }
 
-  let currentSort = { field: "width", direction: 1 };
+  const closeAllButton = document.getElementById("close-test");
+  if (closeAllButton) {
+    closeAllButton.addEventListener("click", () => {
+      closeAllWindows();
+    });
+  }
 
+  /** Closes all opened windows via event broadcast */
+  function closeAllWindows() {
+    const bc = new BroadcastChannel("window-manager");
+    bc.postMessage("close-all");
+
+    // fallback attempt (if broadcast fails)
+    openedWindows.forEach((w) => {
+      try {
+        if (!w.closed) w.close();
+      } catch (e) {
+        console.warn("Fallback close failed:", e);
+      }
+    });
+    openedWindows = [];
+  }
+
+  /** Sort configs (future use) */
   function sortConfigs(configs, field = "width", direction = 1) {
     return [...configs].sort((a, b) => {
       if (a[field] < b[field]) return -1 * direction;
@@ -89,12 +141,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  /** Load configs into UI */
   function loadConfigs() {
     const configs = JSON.parse(localStorage.getItem("configs")) || [];
     const configList = document.getElementById("config-list");
 
     if (!configList) {
-      alert("Config container not found.");
+      console.error("Config container not found.");
       return;
     }
 
@@ -111,10 +164,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const editButton = document.createElement("button");
       editButton.textContent = "Edit";
-      editButton.addEventListener("click", () => editConfig(config));
+      editButton.classList.add("edit-button");
+
+      editButton.addEventListener("click", () => {
+        tabManager.activate("settings");
+        editConfig(config);
+      });
 
       const deleteButton = document.createElement("button");
       deleteButton.textContent = "Delete";
+      deleteButton.classList.add("delete-button");
       deleteButton.addEventListener("click", () => deleteConfig(config.id));
 
       configElement.appendChild(editButton);
@@ -130,6 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("config-form");
     form.dataset.mode = "edit";
     form.dataset.editId = config.id;
+    tabManager.activate("settings");
   }
 
   function saveConfig(config) {
@@ -158,16 +218,62 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("zoom").value = DEFAULT_ZOOM;
     const form = document.getElementById("config-form");
     form.dataset.mode = "add";
+    delete form.dataset.editId;
   }
 
-  const tabButtons = document.querySelectorAll(".tab-button");
-  tabButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const tabName = button.dataset.tab;
-      tabButtons.forEach((btn) => btn.classList.remove("active"));
-      document.querySelectorAll(".tab-content").forEach((content) => content.classList.remove("active"));
-      button.classList.add("active");
-      document.querySelector(`.${tabName}`).classList.add("active");
-    });
-  });
+  // --- NEW TAB SYSTEM ---
+  class TabManager {
+    constructor(tabContainerSelector, contentSelector, activeClass = "active") {
+      this.tabButtons = document.querySelectorAll(`${tabContainerSelector} .tab-button`);
+      this.tabContents = document.querySelectorAll(contentSelector);
+      this.activeClass = activeClass;
+      this.currentIndex = 0;
+      this.init();
+    }
+
+    init() {
+      if (!this.tabButtons.length || !this.tabContents.length) return;
+
+      this.tabButtons.forEach((button, index) => {
+        button.addEventListener("click", () => {
+          this.currentIndex = index;
+          this.activate(button.dataset.tab);
+        });
+      });
+
+      // Activate first tab by default
+      const defaultTab = this.tabButtons[0]?.dataset.tab;
+      if (defaultTab) this.activate(defaultTab);
+    }
+
+    activate(tabName) {
+      // Deactivate all
+      this.tabButtons.forEach((btn) => btn.classList.remove(this.activeClass));
+      this.tabContents.forEach((content) => content.classList.remove(this.activeClass));
+
+      // Activate selected
+      const targetBtn = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
+      const targetContent = document.querySelector(`.tab-content.${tabName}`);
+
+      if (targetBtn && targetContent) {
+        targetBtn.classList.add(this.activeClass);
+        targetContent.classList.add(this.activeClass);
+      } else {
+        console.error(`Tab "${tabName}" not found.`);
+      }
+    }
+
+    next() {
+      this.currentIndex = (this.currentIndex + 1) % this.tabButtons.length;
+      this.activate(this.tabButtons[this.currentIndex].dataset.tab);
+    }
+
+    prev() {
+      this.currentIndex = (this.currentIndex - 1 + this.tabButtons.length) % this.tabButtons.length;
+      this.activate(this.tabButtons[this.currentIndex].dataset.tab);
+    }
+  }
+
+  // Initialize TabManager
+  tabManager = new TabManager(".tabs", ".tab-content");
 });

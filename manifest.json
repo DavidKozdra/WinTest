@@ -5,7 +5,7 @@
     "description": "Opens the current page URL in a new window",
     
       "permissions": ["tabs"],
-      "host_permissions": ["<all_urls>"],
+      "host_permissions": ["< >"],
     
     
     

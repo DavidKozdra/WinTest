@@ -166,3 +166,23 @@ button i {
     gap: 8px;
   }
 }
+
+button {
+  background: #eee;
+  border: 1px solid #ccc;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+/* Hover effect */
+button:hover {
+  background: #ddd;
+}
+
+/* Active (when pressed) */
+button:active {
+  background: #ccc;
+  transform: scale(0.97); /* subtle press effect */
+}

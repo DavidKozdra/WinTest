@@ -145,6 +145,23 @@
       height: 5%;
     }
 
+
+
+
+.tab-button {
+  flex: 1 1 auto; /* let buttons grow/shrink */
+  min-width: 100px; /* ensures buttons don’t get too narrow */
+  font-size: 1em; /* slightly smaller on mobile */
+  padding: 10px 5px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 500px) {
+  .tab-button {
+    padding: 8px 5px;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -153,9 +170,12 @@
 
   <!-- Tab Navigation -->
   <div class="tabs">
-    <button class="tab-button active" data-tab="settings">Settings</button>
-    <button class="tab-button" data-tab="configs">Configurations</button>
-    <button class="tab-button" data-tab="test">Run Test</button>
+    <button class="tab-button active " data-tab="settings"><i class="fas fa-cog"></i> Settings</button>
+    <button class="tab-button" data-tab="configs">
+  <i class="fas fa-file-alt"></i> Configurations
+</button>
+
+    <button class="tab-button" data-tab="test">  <i class="fas fa-play"></i>Run Test</button>
   </div>
 
   <!-- Tab Content -->
@@ -179,6 +199,9 @@
 
   <div class="tab-content test">
     <button id="start-test"><i class="fas fa-play"></i> Start Test</button>
+
+
+    <!-- <button id="close-test"><i class="fas fa-trash"></i> Close all Wintest Windows</button>-->
   </div>
 
   <script src="popup.js"></script>
