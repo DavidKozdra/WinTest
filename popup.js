@@ -1,279 +1,434 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const DEFAULT_WIDTH = 1000;
-  const DEFAULT_HEIGHT = 1000;
-  const DEFAULT_ZOOM = 1;
-
-  let openedWindows = []; // store references to all opened windows
-  let tabManager; // for tab control
-
-  loadConfigs();
-
-  // --- FORM HANDLING ---
-  const configForm = document.getElementById("config-form");
-  if (configForm) {
-    configForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-
-      let width = parseInt(document.getElementById("width").value) || DEFAULT_WIDTH;
-      let height = parseInt(document.getElementById("height").value) || DEFAULT_HEIGHT;
-      let zoom = parseFloat(document.getElementById("zoom").value) || DEFAULT_ZOOM;
-
-      if (width <= 0 || height <= 0 || zoom <= 0) {
-        alert("Invalid config values. Width, height, and zoom must be greater than 0.");
-        return;
-      }
-
-      const config = {
-        id: Date.now(),
-        width,
-        height,
-        zoom,
-      };
-
-      const mode = configForm.dataset.mode;
-      if (mode === "edit") {
-        config.id = parseInt(configForm.dataset.editId);
-      }
-      saveConfig(config);
-
-      loadConfigs();
-      resetForm();
-    });
+class TabManager {
+  constructor(tabContainerSelector, contentSelector, activeClass = "active") {
+    this.tabButtons = document.querySelectorAll(`${tabContainerSelector} .tab-button`);
+    this.tabContents = document.querySelectorAll(contentSelector);
+    this.activeClass = activeClass;
+    this.currentIndex = 0;
+    this.init();
   }
 
-  const cancelConfigButton = document.getElementById("cancel-config");
-  if (cancelConfigButton) {
-    cancelConfigButton.addEventListener("click", resetForm);
-  }
-
-  const startTestButton = document.getElementById("start-test");
-  if (startTestButton) {
-    startTestButton.addEventListener("click", () => {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (!tabs || !tabs.length || !tabs[0] || !tabs[0].url) {
-          alert("Unable to access the current tab URL. Make sure it's a regular webpage.");
-          return;
-        }
-
-        const currentUrl = tabs[0].url;
-
-        // prevent restricted pages (like chrome://, about:, edge://, file://)
-        if (/^(chrome|about|edge|file):\/\//.test(currentUrl)) {
-          alert("This tab cannot be opened in a new window (restricted URL).");
-          return;
-        }
-
-        const configs = JSON.parse(localStorage.getItem("configs")) || [];
-
-        if (configs.length === 0) {
-          alert("No configurations found. Please add one first.");
-          return;
-        }
-
-        // close previously opened windows before opening new ones
-        closeAllWindows();
-
-        configs.forEach((config) => {
-          const width = config.width || DEFAULT_WIDTH;
-          const height = config.height || DEFAULT_HEIGHT;
-          const zoom = config.zoom || DEFAULT_ZOOM;
-
-          const newWindow = window.open(currentUrl, "_blank", `width=${width},height=${height}`);
-          if (newWindow) {
-            openedWindows.push(newWindow);
-
-            newWindow.onload = () => {
-              try {
-                newWindow.document.body.style.zoom = zoom;
-
-                // Inject BroadcastChannel listener into the child window
-                const script = newWindow.document.createElement("script");
-                script.textContent = `
-                  const bc = new BroadcastChannel("window-manager");
-                  bc.onmessage = (event) => {
-                    if (event.data === "close-all") {
-                      window.close();
-                    }
-                  };
-                `;
-                newWindow.document.head.appendChild(script);
-              } catch (e) {
-                console.warn("Could not inject event listener into child window:", e);
-              }
-            };
-          } else {
-            alert("Failed to open a new window. Check your browser settings (pop-ups may be blocked).");
-          }
-        });
+  init() {
+    if (!this.tabButtons.length || !this.tabContents.length) return;
+    this.tabButtons.forEach((button, index) => {
+      button.addEventListener("click", () => {
+        this.currentIndex = index;
+        this.activate(button.dataset.tab);
       });
     });
+    const defaultTab = this.tabButtons[0]?.dataset.tab;
+    if (defaultTab) this.activate(defaultTab);
   }
 
-  const closeAllButton = document.getElementById("close-test");
-  if (closeAllButton) {
-    closeAllButton.addEventListener("click", () => {
-      closeAllWindows();
+  activate(tabName) {
+    this.tabButtons.forEach((btn) => btn.classList.remove(this.activeClass));
+    this.tabContents.forEach((content) => content.classList.remove(this.activeClass));
+    const targetBtn = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
+    const targetContent = document.querySelector(`.tab-content.${tabName}`);
+    if (targetBtn && targetContent) {
+      targetBtn.classList.add(this.activeClass);
+      targetContent.classList.add(this.activeClass);
+    }
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const DEFAULT_WIDTH = 1200;
+  const DEFAULT_HEIGHT = 800;
+  const DEFAULT_ZOOM = 1;
+  const STATUS_LIMIT = 8;
+  const ISSUE_KEY = "wintest-issues";
+  const PRESETS = [
+    { label: "Desktop Wide", width: 1440, height: 900, zoom: 1 },
+    { label: "Laptop", width: 1366, height: 768, zoom: 1 },
+    { label: "Tablet", width: 1024, height: 768, zoom: 0.95 },
+    { label: "Large Phone", width: 414, height: 896, zoom: 0.95 },
+    { label: "Small Phone", width: 360, height: 740, zoom: 0.9 },
+    { label: "Full HD", width: 1920, height: 1080, zoom: 1 },
+  ];
+
+  let openedWindows = [];
+  let statusEntries = [];
+  let tabManager;
+
+  const configForm = document.getElementById("config-form");
+  const labelInput = document.getElementById("label");
+  const widthInput = document.getElementById("width");
+  const heightInput = document.getElementById("height");
+  const zoomInput = document.getElementById("zoom");
+  const notesInput = document.getElementById("notes");
+  const startTestButton = document.getElementById("start-test");
+  const closeTestButton = document.getElementById("close-test");
+  const useTabButton = document.getElementById("use-current-tab");
+  const targetUrlInput = document.getElementById("target-url");
+  const presetContainer = document.getElementById("preset-buttons");
+  const addDeviceSetButton = document.getElementById("add-device-set");
+  const statusList = document.getElementById("status-list");
+  const issueLog = document.getElementById("issue-log");
+
+  // --- UI Init ---
+  tabManager = new TabManager(".tabs", ".tab-content");
+  renderPresetButtons();
+  loadConfigs();
+  renderIssues();
+  prefillTargetUrl();
+  renderStatusList();
+
+  // --- Form Handling ---
+  configForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const width = parseInt(widthInput.value, 10) || DEFAULT_WIDTH;
+    const height = parseInt(heightInput.value, 10) || DEFAULT_HEIGHT;
+    const zoom = parseFloat(zoomInput.value) || DEFAULT_ZOOM;
+
+    if (width <= 0 || height <= 0 || zoom <= 0) {
+      alert("Width, height, and zoom must be greater than 0.");
+      return;
+    }
+
+    const formMode = configForm.dataset.mode;
+    const id = formMode === "edit" ? parseInt(configForm.dataset.editId, 10) : Date.now();
+    const newConfig = {
+      id,
+      label: labelInput.value.trim() || `${width}×${height}`,
+      width,
+      height,
+      zoom,
+      notes: notesInput.value.trim(),
+    };
+
+    saveConfig(newConfig);
+    loadConfigs();
+    resetForm();
+  });
+
+  document.getElementById("cancel-config")?.addEventListener("click", resetForm);
+
+  // --- Test Controls ---
+  startTestButton?.addEventListener("click", startBatchTest);
+  closeTestButton?.addEventListener("click", () => closeAllWindows("Manually closed"));
+  useTabButton?.addEventListener("click", () => prefillTargetUrl(true));
+  addDeviceSetButton?.addEventListener("click", addPopularBreakpoints);
+
+  // --- Helpers ---
+  function loadConfigs() {
+    const configs = getConfigs();
+    const configList = document.getElementById("config-list");
+    if (!configList) return;
+
+    const issues = loadIssues();
+    configList.innerHTML = "";
+
+    configs.forEach((config) => {
+      const item = document.createElement("div");
+      item.className = "config-item";
+
+      const issueCount = issues.filter((issue) => issue.configId === config.id).length;
+
+      item.innerHTML = `
+        <header>
+          <span>${config.label}</span>
+          <span>${Math.round((config.zoom || 1) * 100)}% zoom</span>
+        </header>
+        <p>${config.width} × ${config.height}</p>
+        <p class="notes">${config.notes || "No notes yet."}</p>
+        <p class="issue-count">${issueCount} noted issue${issueCount === 1 ? "" : "s"}</p>
+      `;
+
+      const actions = document.createElement("div");
+      actions.className = "config-actions";
+
+      const launchButton = document.createElement("button");
+      launchButton.type = "button";
+      launchButton.className = "launch-button";
+      launchButton.textContent = "Launch";
+      launchButton.addEventListener("click", () => launchConfig(config));
+
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.className = "edit-button";
+      editButton.textContent = "Edit";
+      editButton.addEventListener("click", () => {
+        tabManager.activate("settings");
+        populateFormForEdit(config);
+      });
+
+      const reportButton = document.createElement("button");
+      reportButton.type = "button";
+      reportButton.className = "delete-button";
+      reportButton.textContent = "Report issue";
+      reportButton.addEventListener("click", () => promptIssue(config));
+
+      actions.append(launchButton, editButton, reportButton);
+      item.appendChild(actions);
+      configList.appendChild(item);
     });
   }
 
-  /** Closes all opened windows via event broadcast */
-  function closeAllWindows() {
+  function populateFormForEdit(config) {
+    labelInput.value = config.label;
+    widthInput.value = config.width;
+    heightInput.value = config.height;
+    zoomInput.value = config.zoom;
+    notesInput.value = config.notes || "";
+    configForm.dataset.mode = "edit";
+    configForm.dataset.editId = config.id;
+  }
+
+  function resetForm() {
+    labelInput.value = "";
+    widthInput.value = DEFAULT_WIDTH;
+    heightInput.value = DEFAULT_HEIGHT;
+    zoomInput.value = DEFAULT_ZOOM;
+    notesInput.value = "";
+    configForm.dataset.mode = "add";
+    delete configForm.dataset.editId;
+  }
+
+  function getConfigs() {
+    return JSON.parse(localStorage.getItem("configs")) || [];
+  }
+
+  function saveConfig(config) {
+    const configs = getConfigs();
+    const index = configs.findIndex((entry) => entry.id === config.id);
+    if (index >= 0) {
+      configs[index] = config;
+    } else {
+      configs.push(config);
+    }
+    localStorage.setItem("configs", JSON.stringify(configs));
+  }
+
+  function startBatchTest() {
+    const targetUrl = getValidatedUrl();
+    if (!targetUrl) {
+      alert("Enter a valid HTTP(s) URL to test.");
+      return;
+    }
+
+    const configs = getConfigs();
+    if (!configs.length) {
+      alert("Add at least one configuration before running a test.");
+      return;
+    }
+
+    statusEntries = [];
+    renderStatusList();
+    closeAllWindows("Opening new batch");
+
+    configs.forEach((config) => openTestWindow(targetUrl, config));
+  }
+
+  function launchConfig(config) {
+    const targetUrl = getValidatedUrl();
+    if (!targetUrl) {
+      alert("Enter a valid HTTP(s) URL to test.");
+      return;
+    }
+    closeAllWindows("Refreshing layout");
+    openTestWindow(targetUrl, config);
+  }
+
+  function openTestWindow(url, config) {
+    const width = config.width || DEFAULT_WIDTH;
+    const height = config.height || DEFAULT_HEIGHT;
+    const zoom = config.zoom || DEFAULT_ZOOM;
+    const logLabel = config.label || `${width}×${height}`;
+
+    logStatus(logLabel, `Launching ${width}×${height}`);
+    const features = `width=${width},height=${height},resizable=yes,scrollbars=yes`;
+    const newWindow = window.open(url, "_blank", features);
+
+    if (!newWindow) {
+      logStatus(logLabel, "Popup blocked or window failed to open", "error");
+      return;
+    }
+
+    openedWindows.push(newWindow);
+
+    newWindow.addEventListener("load", () => {
+      try {
+        newWindow.document.body.style.zoom = zoom;
+        injectCloseListener(newWindow);
+        logStatus(logLabel, "Ready — zoom applied", "success");
+      } catch (error) {
+        logStatus(logLabel, "Loaded but zoom/style injection blocked", "warn");
+      }
+    });
+  }
+
+  function injectCloseListener(win) {
+    try {
+      const script = win.document.createElement("script");
+      script.textContent = `
+        const bc = new BroadcastChannel("window-manager");
+        bc.onmessage = (event) => {
+          if (event.data === "close-all") {
+            window.close();
+          }
+        };
+      `;
+      win.document.head.appendChild(script);
+    } catch (error) {
+      // cross-origin pages won't allow DOM access; silently ignore
+    }
+  }
+
+  function closeAllWindows(reason) {
+    if (!openedWindows.length) return;
+    logStatus("All layouts", `${reason || "Closing windows"}`, "warn");
+
     const bc = new BroadcastChannel("window-manager");
     bc.postMessage("close-all");
 
-    // fallback attempt (if broadcast fails)
-    openedWindows.forEach((w) => {
+    openedWindows.forEach((win) => {
       try {
-        if (!w.closed) w.close();
-      } catch (e) {
-        console.warn("Fallback close failed:", e);
+        if (!win.closed) win.close();
+      } catch (error) {
+        console.warn("Close fallback failed", error);
       }
     });
     openedWindows = [];
   }
 
-  /** Sort configs (future use) */
-  function sortConfigs(configs, field = "width", direction = 1) {
-    return [...configs].sort((a, b) => {
-      if (a[field] < b[field]) return -1 * direction;
-      if (a[field] > b[field]) return 1 * direction;
-      return 0;
+  function getValidatedUrl() {
+    const input = targetUrlInput.value.trim();
+    if (!input) return null;
+    try {
+      const parsed = new URL(input);
+      if (!/^https?:$/.test(parsed.protocol)) return null;
+      if (/^(chrome|edge|about|file):/.test(parsed.href)) return null;
+      return parsed.href;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function prefillTargetUrl(force = false) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const currentUrl = tabs?.[0]?.url;
+      if (!currentUrl) return;
+      if (force || !targetUrlInput.value.trim()) {
+        if (/^(chrome|edge|about|file):/.test(currentUrl)) return;
+        targetUrlInput.value = currentUrl;
+      }
     });
   }
 
-  /** Load configs into UI */
-  function loadConfigs() {
-    const configs = JSON.parse(localStorage.getItem("configs")) || [];
-    const configList = document.getElementById("config-list");
+  function logStatus(title, detail, state = "info") {
+    statusEntries.unshift({ title, detail, state, timestamp: Date.now() });
+    if (statusEntries.length > STATUS_LIMIT) statusEntries.pop();
+    renderStatusList();
+  }
 
-    if (!configList) {
-      console.error("Config container not found.");
+  function renderStatusList() {
+    if (!statusList) return;
+    if (!statusEntries.length) {
+      statusList.innerHTML = `<div class="status-entry empty">Ready to launch configurations. Enter a URL and tap "Start test".</div>`;
       return;
     }
+    statusList.innerHTML = statusEntries
+      .map((entry) => {
+        const timeString = new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return `
+          <div class="status-entry" data-state="${entry.state}">
+            <strong>${entry.title}</strong>
+            <span class="time">${timeString}</span>
+            <small>${entry.detail}</small>
+          </div>
+        `;
+      })
+      .join("");
+  }
 
-    configList.innerHTML = "";
-
-    configs.forEach((config) => {
-      const configElement = document.createElement("div");
-      configElement.classList.add("config-item");
-      configElement.innerHTML = `
-        <strong>Width:</strong> ${config.width}<br>
-        <strong>Height:</strong> ${config.height}<br>
-        <strong>Zoom:</strong> ${config.zoom * 100}%<br>
-      `;
-
-      const editButton = document.createElement("button");
-      editButton.textContent = "Edit";
-      editButton.classList.add("edit-button");
-
-      editButton.addEventListener("click", () => {
-        tabManager.activate("settings");
-        editConfig(config);
-      });
-
-      const deleteButton = document.createElement("button");
-      deleteButton.textContent = "Delete";
-      deleteButton.classList.add("delete-button");
-      deleteButton.addEventListener("click", () => deleteConfig(config.id));
-
-      configElement.appendChild(editButton);
-      configElement.appendChild(deleteButton);
-      configList.appendChild(configElement);
+  function renderPresetButtons() {
+    if (!presetContainer) return;
+    presetContainer.innerHTML = "";
+    PRESETS.forEach((preset) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = preset.label;
+      button.addEventListener("click", () => applyPreset(preset));
+      presetContainer.appendChild(button);
     });
   }
 
-  function editConfig(config) {
-    document.getElementById("width").value = config.width;
-    document.getElementById("height").value = config.height;
-    document.getElementById("zoom").value = config.zoom;
-    const form = document.getElementById("config-form");
-    form.dataset.mode = "edit";
-    form.dataset.editId = config.id;
-    tabManager.activate("settings");
+  function applyPreset(preset) {
+    labelInput.value = preset.label;
+    widthInput.value = preset.width;
+    heightInput.value = preset.height;
+    zoomInput.value = preset.zoom;
+    notesInput.value = `Preset: ${preset.label}`;
+    configForm.dataset.mode = "add";
+    delete configForm.dataset.editId;
   }
 
-  function saveConfig(config) {
-    const configs = JSON.parse(localStorage.getItem("configs")) || [];
-    const existingIndex = configs.findIndex((c) => c.id === config.id);
-
-    if (existingIndex >= 0) {
-      configs[existingIndex] = config;
-    } else {
-      configs.push(config);
-    }
-
+  function addPopularBreakpoints() {
+    const configs = getConfigs();
+    PRESETS.forEach((preset) => {
+      const exists = configs.some(
+        (cfg) => cfg.width === preset.width && cfg.height === preset.height && cfg.zoom === preset.zoom
+      );
+      if (!exists) {
+        const newConfig = {
+          id: Date.now() + Math.random(),
+          label: preset.label,
+          width: preset.width,
+          height: preset.height,
+          zoom: preset.zoom,
+          notes: "From preset"
+        };
+        configs.push(newConfig);
+      }
+    });
     localStorage.setItem("configs", JSON.stringify(configs));
-  }
-
-  function deleteConfig(id) {
-    const configs = JSON.parse(localStorage.getItem("configs")) || [];
-    const updatedConfigs = configs.filter((config) => config.id !== id);
-    localStorage.setItem("configs", JSON.stringify(updatedConfigs));
     loadConfigs();
   }
 
-  function resetForm() {
-    document.getElementById("width").value = DEFAULT_WIDTH;
-    document.getElementById("height").value = DEFAULT_HEIGHT;
-    document.getElementById("zoom").value = DEFAULT_ZOOM;
-    const form = document.getElementById("config-form");
-    form.dataset.mode = "add";
-    delete form.dataset.editId;
+  function promptIssue(config) {
+    const note = prompt(`What issue did you spot for ${config.label}?`);
+    if (!note?.trim()) return;
+    addIssue({
+      configId: config.id,
+      configLabel: config.label,
+      message: note.trim(),
+      timestamp: Date.now(),
+    });
   }
 
-  // --- NEW TAB SYSTEM ---
-  class TabManager {
-    constructor(tabContainerSelector, contentSelector, activeClass = "active") {
-      this.tabButtons = document.querySelectorAll(`${tabContainerSelector} .tab-button`);
-      this.tabContents = document.querySelectorAll(contentSelector);
-      this.activeClass = activeClass;
-      this.currentIndex = 0;
-      this.init();
-    }
-
-    init() {
-      if (!this.tabButtons.length || !this.tabContents.length) return;
-
-      this.tabButtons.forEach((button, index) => {
-        button.addEventListener("click", () => {
-          this.currentIndex = index;
-          this.activate(button.dataset.tab);
-        });
-      });
-
-      // Activate first tab by default
-      const defaultTab = this.tabButtons[0]?.dataset.tab;
-      if (defaultTab) this.activate(defaultTab);
-    }
-
-    activate(tabName) {
-      // Deactivate all
-      this.tabButtons.forEach((btn) => btn.classList.remove(this.activeClass));
-      this.tabContents.forEach((content) => content.classList.remove(this.activeClass));
-
-      // Activate selected
-      const targetBtn = document.querySelector(`.tab-button[data-tab="${tabName}"]`);
-      const targetContent = document.querySelector(`.tab-content.${tabName}`);
-
-      if (targetBtn && targetContent) {
-        targetBtn.classList.add(this.activeClass);
-        targetContent.classList.add(this.activeClass);
-      } else {
-        console.error(`Tab "${tabName}" not found.`);
-      }
-    }
-
-    next() {
-      this.currentIndex = (this.currentIndex + 1) % this.tabButtons.length;
-      this.activate(this.tabButtons[this.currentIndex].dataset.tab);
-    }
-
-    prev() {
-      this.currentIndex = (this.currentIndex - 1 + this.tabButtons.length) % this.tabButtons.length;
-      this.activate(this.tabButtons[this.currentIndex].dataset.tab);
-    }
+  function addIssue(issue) {
+    const issues = loadIssues();
+    issues.unshift(issue);
+    if (issues.length > 30) issues.pop();
+    localStorage.setItem(ISSUE_KEY, JSON.stringify(issues));
+    renderIssues();
+    loadConfigs();
   }
 
-  // Initialize TabManager
-  tabManager = new TabManager(".tabs", ".tab-content");
+  function loadIssues() {
+    return JSON.parse(localStorage.getItem(ISSUE_KEY)) || [];
+  }
+
+  function renderIssues() {
+    if (!issueLog) return;
+    const issues = loadIssues();
+    if (!issues.length) {
+      issueLog.innerHTML = `<p class="empty-note">No issues yet. Launch a configuration and tap "Report issue" to capture findings.</p>`;
+      return;
+    }
+    issueLog.innerHTML = issues
+      .map((issue) => {
+        const timeString = new Date(issue.timestamp).toLocaleString([], { hour: "2-digit", minute: "2-digit", month: "short", day: "numeric" });
+        return `
+          <div class="issue-entry">
+            <strong>${issue.configLabel}</strong>
+            <p>${issue.message}</p>
+            <div class="meta">${timeString}</div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
 });

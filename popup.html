@@ -7,164 +7,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
   <link rel="stylesheet" href="./style.css">
 
-  <style>
-    /* General Styles */
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-      color: #333;
-      width: 100%;
-      height: auto;
-      text-align: center;
-    }
-
-    h3 {
-      color: #2c3e50;
-      margin-top: 10px;
-      font-size: 22px;
-      font-weight: bold;
-    }
-
-    /* Tab navigation styles */
-    .tabs {
-      display: flex;
-      justify-content: center;
-      margin-top: 10px;
-    }
-
-    .tabs button {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      cursor: pointer;
-      width: 33%;
-      border-radius: 5px 5px 0 0;
-    }
-
-    .tabs button:hover {
-      background-color: #2980b9;
-    }
-
-    .tabs button.active {
-      background-color: #2980b9;
-    }
-
-    .tab-content {
-      display: none;
-      padding: 20px;
-      background-color: #fff;
-      border-radius: 0 0 5px 5px;
-      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .config-form {
-      background-color: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
-
-    /* Form inputs and button styles */
-    input[type="number"] {
-      width: 90%;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-
-    button {
-      padding: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      margin: 5px;
-      background-color: #3498db;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-    }
-
-    button:hover {
-      background-color: #2980b9;
-    }
-
-    #add-config, #start-test {
-      width: 100%;
-      margin-top: 20px;
-    }
-
-    /* Config List Styles */
-    #config-list {
-      margin-top: 20px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .config-item {
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin: 5px 0;
-      background-color: #fff;
-      border-radius: 8px;
-      text-align: left;
-    }
-
-    .config-item button {
-      font-size: 14px;
-      padding: 5px 10px;
-      background-color: #e74c3c;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      margin-right: 5px;
-    }
-
-    .config-item button:hover {
-      background-color: #c0392b;
-    }
-
-    .config-item .edit-button {
-      background-color: #f39c12;
-    }
-
-    .config-item .edit-button:hover {
-      background-color: #e67e22;
-    }
-
-    .mainIcon{
-      width: 5%;
-      height: 5%;
-    }
-
-
-
-
-.tab-button {
-  flex: 1 1 auto; /* let buttons grow/shrink */
-  min-width: 100px; /* ensures buttons don’t get too narrow */
-  font-size: 1em; /* slightly smaller on mobile */
-  padding: 10px 5px;
-  box-sizing: border-box;
-}
-
-@media (max-width: 500px) {
-  .tab-button {
-    padding: 8px 5px;
-  }
-}
-
-  </style>
 </head>
-<body>
+<body class="body-frame">
 
   <h3><img src="./icon.png" class="mainIcon">  </img> WinTest  </h3>
 
@@ -181,15 +25,56 @@
   <!-- Tab Content -->
   <div class="tab-content settings active">
     <h4>Add/Edit Config</h4>
-    <form id="config-form">
-      <input type="number" id="width" placeholder="Enter width" required />
-      <input type="number" id="height" placeholder="Enter height" required />
-      <input type="number" id="zoom" placeholder="Enter zoom (e.g., 1 for 100%)" step="0.1" min="0.1" required />
+    <form id="config-form" data-mode="add" class="form-grid">
+      <div class="floating-field span-two">
+        <input type="text" id="label" autocomplete="off" placeholder=" " />
+        <label for="label">Layout name</label>
+        <span class="helper-text">Give this layout a memorable name (e.g. Desktop Debug).</span>
+      </div>
+
+      <div class="floating-field">
+        <input type="number" id="width" placeholder=" " required />
+        <label for="width">Width (px)</label>
+        <span class="helper-text">Common widths: 320, 768, 1440.</span>
+        <span class="validation-indicator" data-state="idle"></span>
+      </div>
+
+      <div class="floating-field">
+        <input type="number" id="height" placeholder=" " required />
+        <label for="height">Height (px)</label>
+        <span class="helper-text">Use 900–1080 for desktop previews, 600 for phones.</span>
+        <span class="validation-indicator" data-state="idle"></span>
+      </div>
+
+      <div class="floating-field span-two">
+        <input type="number" id="zoom" placeholder=" " step="0.1" min="0.1" required />
+        <label for="zoom">Zoom</label>
+        <span class="helper-text">Enter 1 for 100%, 0.9 for 90%, etc.</span>
+        <span class="validation-indicator" data-state="idle"></span>
+      </div>
+
+      <div class="floating-field span-two">
+        <textarea id="notes" rows="3" placeholder=" "></textarea>
+        <label for="notes">Notes / reminders</label>
+        <span class="helper-text">Use this to remember what issue you’re verifying at this size.</span>
+      </div>
+
       <div class="button-container">
-        <button type="submit" id="save-config"><i class="fas fa-save"></i> Save Config</button>
-        <button type="button" id="cancel-config"><i class="fas fa-times"></i> Cancel</button>
+        <button type="submit" id="save-config" class="gradient"> <i class="fas fa-save"></i> Save Config</button>
+        <button type="button" id="cancel-config" class="ghost"><i class="fas fa-times"></i> Cancel</button>
       </div>
     </form>
+
+    <div class="preset-group">
+      <div class="preset-header">
+        <span><i class="fas fa-cubes"></i> Quick presets</span>
+        <small>Tap to prefill the form or hold to add the set in one go.</small>
+      </div>
+      <div class="preset-row" id="preset-buttons">
+        <!-- Buttons rendered via JS -->
+      </div>
+      <button id="add-device-set" class="full-width"><i class="fas fa-layer-group"></i> Add popular breakpoints</button>
+    </div>
   </div>
 
   <div class="tab-content configs">
@@ -198,10 +83,27 @@
   </div>
 
   <div class="tab-content test">
-    <button id="start-test"><i class="fas fa-play"></i> Start Test</button>
+    <div class="test-controls">
+      <label for="target-url">URL to test</label>
+      <div class="url-input-row">
+        <input type="text" id="target-url" placeholder="https://example.com" />
+        <button id="use-current-tab" type="button"><i class="fas fa-arrow-circle-down"></i> Use tab</button>
+      </div>
+      <div class="test-actions">
+        <button id="start-test"><i class="fas fa-play"></i> Start test</button>
+        <button id="close-test"><i class="fas fa-window-close"></i> Close all</button>
+      </div>
+    </div>
 
+    <div class="status-panel">
+      <h4>Test status</h4>
+      <div id="status-list"></div>
+    </div>
 
-    <!-- <button id="close-test"><i class="fas fa-trash"></i> Close all Wintest Windows</button> -->
+    <div class="issue-panel">
+      <h4>Issue log</h4>
+      <div id="issue-log">No issues yet. Launch a config and tap "Report issue" to capture findings.</div>
+    </div>
   </div>
 
   <script src="popup.js"></script>
