@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WinTest",
-  "version": "1.1",
+  "version": "2",
   "description": "Opens the current page URL in a new window",
   "permissions": ["tabs"],
   "host_permissions": ["<all_urls>"],
