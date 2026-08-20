@@ -10,13 +10,47 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir);
 }
 
+/**
+ * Bumps the patch version in package.json and mirrors it into manifest.json.
+ *
+ * Done in-process rather than by shelling out to `npm version patch`, which
+ * refuses to run when the git working tree is dirty, creates a commit and tag
+ * on every build, and only knows about package.json - leaving manifest.json,
+ * the version Chrome actually reads, to drift out of sync.
+ */
+function bumpPatchVersion() {
+  const packagePath = path.join(__dirname, "package.json");
+  const manifestPath = path.join(__dirname, "manifest.json");
+
+  const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  const parts = String(pkg.version ?? "").split(".").map(Number);
+  if (parts.length !== 3 || parts.some((n) => !Number.isInteger(n) || n < 0)) {
+    throw new Error(`Cannot bump malformed version in package.json: ${pkg.version}`);
+  }
+
+  const next = `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
+  pkg.version = next;
+  fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+
+  // Chrome reads this one, so it must not drift from package.json.
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const previous = manifest.version;
+  manifest.version = next;
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  console.log(`Version bumped to ${next}${previous !== next ? ` (manifest was ${previous})` : ""}`);
+  return next;
+}
+
+const version = bumpPatchVersion();
+
 const output = fs.createWriteStream(outputFile);
 const archive = archiver("zip", {
   zlib: { level: 9 },
 });
 
 output.on("close", () => {
-  console.log(`Build complete: ${archive.pointer()} total bytes written to ${outputFile}`);
+  console.log(`Build complete: v${version}, ${archive.pointer()} total bytes written to ${outputFile}`);
 });
 
 archive.on("error", (err) => {
@@ -76,3 +110,4 @@ function resolveExtensionDir() {
 
   throw new Error("No manifest.json found in project root or ./extension");
 }
+
