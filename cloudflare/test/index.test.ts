@@ -164,6 +164,7 @@ describe("verification endpoint", () => {
       const payload = JSON.parse(String(form.get("payload_json")));
       expect(payload.content).toContain("390×844 CSS");
       expect(payload.allowed_mentions).toEqual({ parse: [] });
+      expect(payload.embeds).toEqual([{ image: { url: "attachment://wintest-390x844.png" } }]);
       const file = form.get("files[0]");
       expect(file).toBeInstanceOf(Blob);
       expect(new Uint8Array(await (file as Blob).arrayBuffer())).toEqual(PNG_BYTES);

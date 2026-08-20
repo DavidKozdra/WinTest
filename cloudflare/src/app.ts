@@ -257,6 +257,7 @@ async function deliverDiscordWebhook(
       `Target: ${targetHost}`,
     allowed_mentions: { parse: [] },
     attachments: [{ id: 0, filename, description: `WinTest capture ${verificationId} at ${capturedAt}` }],
+    embeds: [{ image: { url: `attachment://${filename}` } }],
   };
   const form = new FormData();
   form.append("payload_json", JSON.stringify(payload));

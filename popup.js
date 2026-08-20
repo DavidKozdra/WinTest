@@ -446,6 +446,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const verificationId = response.headers.get("X-WinTest-Verification-Id") || "unavailable";
       const webhookStatus = response.headers.get("X-WinTest-Webhook-Status") || "skipped";
+      const webhookResponse = response.headers.get("X-WinTest-Webhook-Response") || "unknown";
       const capturedAt = response.headers.get("X-WinTest-Captured-At") || new Date().toISOString();
       const safeName = String(payload.label || "screen")
         .toLowerCase()
@@ -482,7 +483,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (viewerError) {
         showVerificationStatus(`Capture complete, but its viewer could not open: ${viewerError.message}`, "warn");
       } else if (webhookStatus === "failed") {
-        showVerificationStatus("Capture complete, but the customer webhook did not accept the PNG.", "warn");
+        showVerificationStatus(
+          `Capture complete, but the customer webhook did not accept the PNG (${webhookResponse}).`,
+          "warn"
+        );
       } else if (webhookStatus === "delivered") {
         showVerificationStatus("Capture complete and delivered to the customer webhook.", "success");
       } else {
