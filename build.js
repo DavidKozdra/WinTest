@@ -2,6 +2,9 @@ const fs = require("fs");
 const path = require("path");
 const archiver = require("archiver");
 
+// Patch and minor carry into the next place once they reach this value.
+const VERSION_ROLLOVER = 40;
+
 const outputDir = path.resolve(__dirname, "dist");
 const outputFile = path.join(outputDir, "extension.zip");
 const sourceDir = resolveExtensionDir();
@@ -11,7 +14,10 @@ if (!fs.existsSync(outputDir)) {
 }
 
 /**
- * Bumps the patch version in package.json and mirrors it into manifest.json.
+ * Bumps the version in package.json and mirrors it into manifest.json.
+ *
+ * Counts like an odometer: patch increments until it reaches VERSION_ROLLOVER,
+ * then carries into minor and resets to 0; minor does the same into major.
  *
  * Done in-process rather than by shelling out to `npm version patch`, which
  * refuses to run when the git working tree is dirty, creates a commit and tag
@@ -28,7 +34,16 @@ function bumpPatchVersion() {
     throw new Error(`Cannot bump malformed version in package.json: ${pkg.version}`);
   }
 
-  const next = `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
+  const [major, minor, patch] = parts;
+  let next;
+  if (patch < VERSION_ROLLOVER) {
+    next = `${major}.${minor}.${patch + 1}`;
+  } else if (minor < VERSION_ROLLOVER) {
+    next = `${major}.${minor + 1}.0`;
+  } else {
+    next = `${major + 1}.0.0`;
+  }
+
   pkg.version = next;
   fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
 

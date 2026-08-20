@@ -55,11 +55,16 @@ resizing windows by hand.
 
 ## Host permission: `https://wintest-verifier.davidkozdra.workers.dev/*`
 
-> Optional, and requested only when the user chooses to use the external screen
-> capture feature. The user's chosen URL and viewport size are sent to this
-> endpoint, which renders that page at that exact size and returns a PNG. It is
-> requested at runtime, not at install, and the feature is not used unless the
-> user opts in.
+> Optional, and requested at runtime only when the user chooses to use the
+> external screen capture feature. It is not requested at install time, and the
+> rest of WinTest works without granting it. When the user clicks "External
+> verify", WinTest sends the URL they entered, the viewport size, zoom and pixel
+> ratio of the selected layout, and that layout's label to this endpoint, which
+> renders the page at that exact size and returns a PNG. If the user has
+> configured an optional webhook, the webhook URL and its bearer token are also
+> forwarded so the endpoint can deliver the PNG there. A randomly generated
+> identifier is sent with the request for rate limiting; it contains no personal
+> information and is not linked to any account.
 
 ---
 
@@ -70,15 +75,21 @@ resizing windows by hand.
 
 ## Data usage disclosures
 
-Check **only** the following:
+Check the following:
 
 - [x] **Website content** — the URL the user chooses to preview is sent to the
-      verification endpoint, but only when the user opts in to external screen
-      capture.
+      verification endpoint, and the rendered PNG of that page is returned. Only
+      when the user opts in to external screen capture.
+- [x] **Authentication information** — *only if the user configures the optional
+      customer webhook.* The bearer token they enter is forwarded to the
+      verification endpoint so it can authenticate the delivery to their own
+      webhook. WinTest does not collect any credential for itself, and never
+      touches passwords or cookies. If you would rather not declare this, remove
+      the webhook token field from the UI before publishing.
 
 Leave unchecked: personally identifiable information, health information,
-financial information, authentication information, personal communications,
-location, web history, user activity.
+financial information, personal communications, location, web history, user
+activity.
 
 Then certify:
 
