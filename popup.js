@@ -446,17 +446,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const verificationId = response.headers.get("X-WinTest-Verification-Id") || "unavailable";
       const webhookStatus = response.headers.get("X-WinTest-Webhook-Status") || "skipped";
+      const capturedAt = response.headers.get("X-WinTest-Captured-At") || new Date().toISOString();
       const safeName = String(payload.label || "screen")
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "") || "screen";
+      const filename = `wintest-${safeName}-${outputSize.width}x${outputSize.height}.png`;
       downloadVerification.href = latestVerificationUrl;
-      downloadVerification.download = `wintest-${safeName}-${outputSize.width}x${outputSize.height}.png`;
+      downloadVerification.download = filename;
       verificationCaption.textContent =
         `${payload.width}×${payload.height} CSS viewport · DPR ${payload.deviceScaleFactor} · ` +
         `${outputSize.width}×${outputSize.height} PNG · ID ${verificationId}`;
 
-      if (webhookStatus === "failed") {
+      let viewerError = null;
+      try {
+        const captureId = await WinTestCaptureStore.saveCapture({
+          blob: imageBlob,
+          capturedAt,
+          deviceScaleFactor: payload.deviceScaleFactor,
+          filename,
+          label: payload.label,
+          outputHeight: outputSize.height,
+          outputWidth: outputSize.width,
+          targetUrl: payload.targetUrl,
+          verificationId,
+          viewportHeight: payload.height,
+          viewportWidth: payload.width,
+          webhookStatus,
+        });
+        await openVerificationViewer(captureId, outputSize);
+      } catch (error) {
+        viewerError = error;
+      }
+
+      if (viewerError) {
+        showVerificationStatus(`Capture complete, but its viewer could not open: ${viewerError.message}`, "warn");
+      } else if (webhookStatus === "failed") {
         showVerificationStatus("Capture complete, but the customer webhook did not accept the PNG.", "warn");
       } else if (webhookStatus === "delivered") {
         showVerificationStatus("Capture complete and delivered to the customer webhook.", "success");
@@ -483,6 +508,39 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         resolve(Boolean(granted));
       });
+    });
+  }
+
+  function openVerificationViewer(captureId, outputSize) {
+    const bounds = WinTestCaptureStore.calculateViewerWindow(
+      outputSize.width,
+      outputSize.height,
+      screen.availWidth,
+      screen.availHeight
+    );
+    const viewerUrl = chrome.runtime.getURL(`viewer.html?capture=${encodeURIComponent(captureId)}`);
+    return new Promise((resolve, reject) => {
+      chrome.windows.create(
+        {
+          focused: true,
+          height: bounds.height,
+          type: "popup",
+          url: viewerUrl,
+          width: bounds.width,
+        },
+        (createdWindow) => {
+          const runtimeError = chrome.runtime.lastError;
+          if (runtimeError) {
+            reject(new Error(runtimeError.message));
+            return;
+          }
+          if (!createdWindow) {
+            reject(new Error("Chrome did not create the viewer window"));
+            return;
+          }
+          resolve(createdWindow);
+        }
+      );
     });
   }
 

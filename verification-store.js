@@ -6,7 +6,7 @@
   const DATABASE_NAME = "wintest-captures";
   const DATABASE_VERSION = 1;
   const STORE_NAME = "captures";
-  const MAX_SAVED_CAPTURES = 5;
+  const MAX_SAVED_CAPTURES = 3;
 
   function createCaptureId(now = Date.now(), uuid = crypto.randomUUID()) {
     return `${String(now).padStart(13, "0")}-${uuid}`;

@@ -138,7 +138,7 @@
 
     <section class="verification-panel" id="verification-panel">
       <h4>External screen capture</h4>
-      <p class="panel-copy">External verification is included with WinTest—no account or access token needed. A 3440×1440 viewport at DPR 1 returns a true 3440×1440 PNG.</p>
+      <p class="panel-copy">External verification is included with WinTest—no account or access token needed. Each capture opens in a full viewer window with fit and 1:1 pixel modes.</p>
       <form id="verification-settings-form" class="form-grid">
         <div class="field span-two">
           <label for="customer-webhook-url">Customer webhook <span class="optional">optional</span></label>
@@ -172,6 +172,7 @@
     </div>
   </div>
 
+  <script src="verification-store.js"></script>
   <script src="verification-client.js"></script>
   <script src="popup.js"></script>
 </body>

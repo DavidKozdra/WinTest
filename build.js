@@ -34,8 +34,12 @@ const RELEASE_FILES = [
   "background.js",
   "popup.html",
   "popup.js",
+  "verification-store.js",
   "verification-client.js",
   "style.css",
+  "viewer.html",
+  "viewer.css",
+  "viewer.js",
 ];
 
 const RELEASE_DIRS = ["icons"];

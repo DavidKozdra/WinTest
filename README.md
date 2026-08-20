@@ -11,6 +11,7 @@
 - Applies zoom **per tab**, so several sizes of the same site keep their own zoom
 - Corrects for browser chrome, so a 414×896 config gives a real 414×896 CSS viewport
 - Captures an exact remote viewport from an **External verify** button
+- Opens every external capture in a dedicated viewer with fit-to-window and natural 1:1 pixel modes
 - Controls device-pixel ratio (DPR), so CSS size and PNG pixel size are explicit
 - Optionally POSTs the captured PNG to a customer webhook
 - Records issues you spot against the configuration you spotted them in
