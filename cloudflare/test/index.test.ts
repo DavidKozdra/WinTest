@@ -48,6 +48,7 @@ describe("request validation", () => {
       height: 844,
       zoom: 1,
       deviceScaleFactor: 1,
+      delaySeconds: 0,
     });
   });
 
@@ -75,6 +76,12 @@ describe("request validation", () => {
     expect(() =>
       parseVerificationRequest({ ...validBody, width: 3000, deviceScaleFactor: 3 }),
     ).toThrow("PNG output must be no larger than 7680 pixels");
+  });
+
+  it("rejects capture delays longer than one minute", () => {
+    expect(() => parseVerificationRequest({ ...validBody, delaySeconds: 61 })).toThrow(
+      "Capture delay must be a whole number between 0 and 60 seconds",
+    );
   });
 });
 
@@ -119,6 +126,21 @@ describe("verification endpoint", () => {
     expect(quickAction).toHaveBeenCalledWith(
       "screenshot",
       expect.objectContaining({ viewport: expect.objectContaining({ width: 390, height: 844 }) }),
+    );
+  });
+
+  it("waits for the requested delay after navigation before capturing", async () => {
+    const quickAction = vi.fn(async () => new Response(PNG_BYTES, { headers: { "Content-Type": "image/png" } }));
+    const response = await handleRequest(
+      makeRequest({ ...validBody, delaySeconds: 15 }),
+      makeEnv(quickAction),
+      { fetch: vi.fn(), now: () => new Date(0), randomUUID: () => "verify-delay" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(quickAction).toHaveBeenCalledWith(
+      "screenshot",
+      expect.objectContaining({ waitForTimeout: 15_000 }),
     );
   });
 

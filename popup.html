@@ -141,6 +141,14 @@
       <p class="panel-copy">External verification is included with WinTest—no account or access token needed. Each capture opens in a full viewer window with fit and 1:1 pixel modes.</p>
       <form id="verification-settings-form" class="form-grid">
         <div class="field span-two">
+          <label for="capture-delay">Capture delay <span class="optional">optional</span></label>
+          <div class="input-unit">
+            <input type="number" id="capture-delay" placeholder="0" min="0" max="60" step="1" required />
+            <span class="unit">sec</span>
+          </div>
+          <span class="field-hint">Wait after the external page loads. Useful for automatic transitions; this separate session cannot see local interactions.</span>
+        </div>
+        <div class="field span-two">
           <label for="customer-webhook-url">Customer webhook <span class="optional">optional</span></label>
           <input type="url" id="customer-webhook-url" autocomplete="url" />
           <span class="field-hint">Discord webhooks are supported. This is separate from the page URL above.</span>
@@ -151,7 +159,7 @@
           <span class="field-hint">For generic webhooks only; leave blank for Discord.</span>
         </div>
         <div class="button-container">
-          <button type="submit" class="gradient">Save webhook settings</button>
+          <button type="submit" class="gradient">Save capture settings</button>
         </div>
       </form>
 

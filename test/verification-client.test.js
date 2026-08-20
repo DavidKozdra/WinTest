@@ -4,6 +4,7 @@ const { test } = require("node:test");
 const {
   buildVerificationPayload,
   getOutputSize,
+  normaliseDelaySeconds,
   normaliseWebhookUrl,
 } = require("../verification-client.js");
 
@@ -11,7 +12,7 @@ test("builds an exact ultrawide verification payload", () => {
   const payload = buildVerificationPayload(
     "https://example.com/app",
     { label: "Ultrawide", width: 3440, height: 1440, zoom: 1, deviceScaleFactor: 1 },
-    { webhookUrl: "https://customer.example/hooks/wintest", webhookToken: "secret" }
+    { delaySeconds: 12, webhookUrl: "https://customer.example/hooks/wintest", webhookToken: "secret" }
   );
 
   assert.deepEqual(payload, {
@@ -23,7 +24,15 @@ test("builds an exact ultrawide verification payload", () => {
     height: 1440,
     zoom: 1,
     deviceScaleFactor: 1,
+    delaySeconds: 12,
   });
+});
+
+test("normalizes and validates the external capture delay", () => {
+  assert.equal(normaliseDelaySeconds(undefined), 0);
+  assert.equal(normaliseDelaySeconds("15"), 15);
+  assert.throws(() => normaliseDelaySeconds(60.5), /whole number/);
+  assert.throws(() => normaliseDelaySeconds(61), /between 0 and 60/);
 });
 
 test("converts CSS viewport and DPR to true PNG pixel dimensions", () => {

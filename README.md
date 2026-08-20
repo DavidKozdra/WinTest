@@ -98,13 +98,17 @@ External verification is included for every WinTest user. There is no account,
 Worker URL, or shared token to configure:
 
 1. Enter the target page in **Run Test**.
-2. Optionally save an HTTPS customer webhook and its bearer token.
+2. Optionally set a capture delay of up to 60 seconds and save an HTTPS customer webhook.
 3. Open **Configurations** and click **External verify**.
 4. Approve access to WinTest's verifier the first time Chrome asks.
 
 The service gives each extension installation an anonymous identifier and
 allows six verification requests per minute. It contains no user identity or
 browsing data and is used only for fair-use limiting.
+
+The delay starts after the external page finishes loading. It can accommodate
+animations or automatically advancing screens, but the Cloudflare browser is a
+separate session and does not inherit interactions performed in a local test window.
 
 The `cloudflare/` directory contains the app-owned Worker. Maintainers can
 deploy it with:

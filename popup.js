@@ -101,6 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusList = document.getElementById("status-list");
   const issueLog = document.getElementById("issue-log");
   const verificationSettingsForm = document.getElementById("verification-settings-form");
+  const captureDelayInput = document.getElementById("capture-delay");
   const customerWebhookUrlInput = document.getElementById("customer-webhook-url");
   const customerWebhookTokenInput = document.getElementById("customer-webhook-token");
   const verificationStatus = document.getElementById("verification-status");
@@ -363,13 +364,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function loadVerificationSettings() {
     const settings = getStoredObject(VERIFICATION_SETTINGS_KEY);
+    let delaySeconds = 0;
+    try {
+      delaySeconds = WinTestVerification.normaliseDelaySeconds(settings.delaySeconds);
+    } catch {
+      // Ignore a malformed stored value rather than prevent the popup from loading.
+    }
+    captureDelayInput.value = String(delaySeconds);
     customerWebhookUrlInput.value = settings.webhookUrl || "";
     customerWebhookTokenInput.value = settings.webhookToken || "";
 
     if (settings.apiUrl || settings.apiToken) {
       localStorage.setItem(
         VERIFICATION_SETTINGS_KEY,
-        JSON.stringify({ webhookUrl: settings.webhookUrl || "", webhookToken: settings.webhookToken || "" })
+        JSON.stringify({
+          delaySeconds,
+          webhookUrl: settings.webhookUrl || "",
+          webhookToken: settings.webhookToken || "",
+        })
       );
     }
 
@@ -382,14 +394,16 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
 
     try {
+      const delaySeconds = WinTestVerification.normaliseDelaySeconds(captureDelayInput.value);
       const webhookUrl = WinTestVerification.normaliseWebhookUrl(customerWebhookUrlInput.value);
       const webhookToken = customerWebhookTokenInput.value.trim();
 
-      const settings = { webhookUrl, webhookToken };
+      const settings = { delaySeconds, webhookUrl, webhookToken };
       localStorage.setItem(VERIFICATION_SETTINGS_KEY, JSON.stringify(settings));
+      captureDelayInput.value = String(delaySeconds);
       customerWebhookUrlInput.value = webhookUrl;
       showVerificationStatus(
-        webhookUrl ? "Webhook settings saved. Free external verification is ready." : "Webhook cleared. Free external verification is ready.",
+        webhookUrl ? "Capture and webhook settings saved." : "Capture settings saved; webhook cleared.",
         "success"
       );
     } catch (error) {
@@ -417,7 +431,9 @@ document.addEventListener("DOMContentLoaded", () => {
       button.disabled = true;
       button.textContent = "Rendering…";
       showVerificationStatus(
-        `Cloudflare is rendering ${payload.width}×${payload.height} CSS pixels at DPR ${payload.deviceScaleFactor}…`,
+        payload.delaySeconds
+          ? `Cloudflare is rendering ${payload.width}×${payload.height} CSS pixels, then waiting ${payload.delaySeconds}s before capture…`
+          : `Cloudflare is rendering ${payload.width}×${payload.height} CSS pixels at DPR ${payload.deviceScaleFactor}…`,
         "info"
       );
       verificationResult.hidden = true;
@@ -457,7 +473,8 @@ document.addEventListener("DOMContentLoaded", () => {
       downloadVerification.download = filename;
       verificationCaption.textContent =
         `${payload.width}×${payload.height} CSS viewport · DPR ${payload.deviceScaleFactor} · ` +
-        `${outputSize.width}×${outputSize.height} PNG · ID ${verificationId}`;
+        `${outputSize.width}×${outputSize.height} PNG · ` +
+        `${payload.delaySeconds}s delay · ID ${verificationId}`;
 
       let viewerError = null;
       try {

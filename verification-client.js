@@ -6,6 +6,7 @@
   const MIN_SIZE = 100;
   const MAX_SIZE = 7680;
   const MAX_OUTPUT_SIZE = 7680;
+  const MAX_DELAY_SECONDS = 60;
 
   function normaliseWebhookUrl(value) {
     if (!String(value || "").trim()) return "";
@@ -25,6 +26,7 @@
     const height = readDimension(config?.height, "Height");
     const zoom = readNumber(config?.zoom, 1, 0.25, 5, "Zoom");
     const deviceScaleFactor = readNumber(config?.deviceScaleFactor, 1, 0.5, 4, "Device pixel ratio");
+    const delaySeconds = normaliseDelaySeconds(settings?.delaySeconds);
     assertOutputSize(width, height, deviceScaleFactor);
 
     return {
@@ -36,7 +38,16 @@
       height,
       zoom,
       deviceScaleFactor,
+      delaySeconds,
     };
+  }
+
+  function normaliseDelaySeconds(value) {
+    const parsed = value === undefined || value === null || value === "" ? 0 : Number(value);
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > MAX_DELAY_SECONDS) {
+      throw new Error(`Capture delay must be a whole number between 0 and ${MAX_DELAY_SECONDS} seconds`);
+    }
+    return parsed;
   }
 
   function getOutputSize(config) {
@@ -85,6 +96,7 @@
   return {
     buildVerificationPayload,
     getOutputSize,
+    normaliseDelaySeconds,
     normaliseWebhookUrl,
   };
 });

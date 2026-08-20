@@ -1,6 +1,7 @@
 const MIN_VIEWPORT = 100;
 const MAX_VIEWPORT = 7680;
 const MAX_OUTPUT_DIMENSION = 7680;
+const MAX_DELAY_SECONDS = 60;
 const MAX_BODY_BYTES = 32 * 1024;
 const MAX_LABEL_LENGTH = 120;
 const MAX_TOKEN_LENGTH = 2048;
@@ -36,6 +37,7 @@ type VerificationRequest = {
   height: number;
   zoom: number;
   deviceScaleFactor: number;
+  delaySeconds: number;
 };
 
 export const DEFAULT_DEPENDENCIES: RuntimeDependencies = {
@@ -93,7 +95,6 @@ export async function handleRequest(
   }
 
   const verificationId = dependencies.randomUUID();
-  const capturedAt = dependencies.now().toISOString();
 
   try {
     const screenshot = await env.BROWSER.quickAction("screenshot", {
@@ -115,6 +116,7 @@ export async function handleRequest(
         waitUntil: "networkidle2",
         timeout: 45_000,
       },
+      waitForTimeout: verification.delaySeconds ? verification.delaySeconds * 1000 : undefined,
       actionTimeout: 60_000,
       bestAttempt: true,
       addStyleTag:
@@ -138,6 +140,7 @@ export async function handleRequest(
       );
     }
 
+    const capturedAt = dependencies.now().toISOString();
     const webhookResult = verification.webhookUrl
       ? await deliverWebhook(
           dependencies.fetch,
@@ -154,6 +157,7 @@ export async function handleRequest(
         targetHost: new URL(verification.targetUrl).hostname,
         verificationId,
         viewport: `${verification.width}x${verification.height}`,
+        delaySeconds: verification.delaySeconds,
         webhookStatus: webhookResult.status,
       }),
     );
@@ -311,6 +315,7 @@ export function parseVerificationRequest(value: unknown): VerificationRequest {
   const height = readViewportDimension(value.height, "Height");
   const zoom = readZoom(value.zoom);
   const deviceScaleFactor = readDeviceScaleFactor(value.deviceScaleFactor);
+  const delaySeconds = readDelaySeconds(value.delaySeconds);
 
   if (
     Math.round(width * deviceScaleFactor) > MAX_OUTPUT_DIMENSION ||
@@ -319,7 +324,7 @@ export function parseVerificationRequest(value: unknown): VerificationRequest {
     throw new Error(`PNG output must be no larger than ${MAX_OUTPUT_DIMENSION} pixels on either axis`);
   }
 
-  return { targetUrl, webhookUrl, webhookToken, label, width, height, zoom, deviceScaleFactor };
+  return { targetUrl, webhookUrl, webhookToken, label, width, height, zoom, deviceScaleFactor, delaySeconds };
 }
 
 export function validatePublicUrl(value: unknown, label: string, requireHttps = false): string {
@@ -372,6 +377,14 @@ function readDeviceScaleFactor(value: unknown): number {
     throw new Error("Device pixel ratio must be between 0.5 and 4");
   }
   return Math.round(value * 100) / 100;
+}
+
+function readDelaySeconds(value: unknown): number {
+  if (value === undefined) return 0;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > MAX_DELAY_SECONDS) {
+    throw new Error(`Capture delay must be a whole number between 0 and ${MAX_DELAY_SECONDS} seconds`);
+  }
+  return value;
 }
 
 function readOptionalString(value: unknown, label: string, maximumLength: number): string | null {
