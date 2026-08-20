@@ -1,12 +1,14 @@
 {
   "name": "wintest",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "Chrome extension for previewing a page at multiple viewport sizes and zoom levels.",
   "main": "background.js",
   "scripts": {
     "browser": "node browser.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build":"node build.js && npm test && npm run"
+    "test": "node --test \"test/*.test.js\"",
+    "build": "node build.js",
+    "test:worker": "npm --prefix cloudflare run check",
+    "check": "npm test && npm run build && npm run test:worker"
   },
   "repository": {
     "type": "git",

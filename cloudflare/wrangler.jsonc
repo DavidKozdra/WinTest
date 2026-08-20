@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "wintest-verifier",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "browser": {
+    "binding": "BROWSER",
+    "remote": true
+  },
+  "ratelimits": [
+    {
+      "name": "VERIFY_RATE_LIMITER",
+      "namespace_id": "918427",
+      "simple": {
+        "limit": 6,
+        "period": 60
+      }
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
+    }
+  }
+}

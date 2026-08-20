@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WinTest External Verification</title>
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <header class="viewer-toolbar">
+    <div class="viewer-title">
+      <img src="icons/icon-48.png" width="32" height="32" alt="">
+      <div>
+        <strong id="capture-label">External verification</strong>
+        <span id="capture-details">Loading full-resolution capture…</span>
+      </div>
+    </div>
+    <div class="viewer-actions">
+      <button id="fit-image" type="button" aria-pressed="true">Fit window</button>
+      <button id="actual-image" type="button" aria-pressed="false">1:1 pixels</button>
+      <a id="download-image" class="button-link" download hidden>Download PNG</a>
+      <button id="close-viewer" class="danger" type="button">Close</button>
+    </div>
+  </header>
+
+  <aside class="capture-meta">
+    <a id="capture-target" target="_blank" rel="noreferrer"></a>
+    <span id="capture-id"></span>
+  </aside>
+
+  <main id="viewer-canvas" class="viewer-canvas" data-mode="fit">
+    <div id="viewer-message" class="viewer-message">Loading capture…</div>
+    <img id="capture-image" alt="Full-resolution externally verified webpage" hidden>
+  </main>
+
+  <script src="verification-store.js"></script>
+  <script src="viewer.js"></script>
+</body>
+</html>
